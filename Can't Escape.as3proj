@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <project version="2">
   <!-- Output SWF options -->
   <output>
@@ -6,12 +6,12 @@
     <movie input="" />
     <movie path="bin\CantEscape.swf" />
     <movie fps="24" />
-    <movie width="800" />
-    <movie height="600" />
+    <movie width="640" />
+    <movie height="480" />
     <movie version="11" />
     <movie minorVersion="0" />
     <movie platform="Flash Player" />
-    <movie background="#FFFFFF" />
+    <movie background="#000000" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>

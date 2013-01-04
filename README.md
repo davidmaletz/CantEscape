@@ -6,4 +6,4 @@ You can play the current build of the game here: http://fancyfishgames.com/ICant
 
 It requires Flash Player 11 and uses Stage3D
 
-The code will not be very well documented, as it's more of a rapid prototype (one month) than a full game. However, the code is open source and will probably be licensed under the GPL.
+The code will not be very well documented, as it's more of a rapid prototype (one month) than a full game.
