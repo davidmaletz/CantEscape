@@ -4,13 +4,14 @@ package  {
 	 * @author David Maletz
 	 */
 	public class World {
-		public static const WALL_TEX:int=0, WALL2_TEX:int=1, FLOOR_TEX:int=2, FLOOR2_TEX:int=3, CEILING_TEX:int=4, OBJECT_TEX:int=5;
+		public static const WALL1_TEX:int=0, WALL2_TEX:int=1, DOOR1_TEX:int=2, DOOR2_TEX:int=3, DOOROPEN_TEX:int = 4,
+			FLOOR_TEX:int=5, CEILING_TEX:int=6, PIT1_TEX:int=7, PIT2_TEX:int=8, N_TEX:int=9;
 		public static const SIZE:int = 7;
 		private var cells:Vector.<Cell>;
-		private var floor_cell:Cell;
+		private var open_door_cell:Cell;
 		public function World(){
-			var sz:int = SIZE*2+1; cells = new Vector.<Cell>(sz*sz, true); floor_cell = new Cell(Cell.FLOOR,0,0);
-			floor_cell.floor = FLOOR_TEX; floor_cell.ceiling = CEILING_TEX; initMap();
+			var sz:int = SIZE*2+1; cells = new Vector.<Cell>(sz*sz, true); open_door_cell = new Cell(Cell.FLOOR,0,0);
+			open_door_cell.floor = FLOOR_TEX; open_door_cell.ceiling = CEILING_TEX; open_door_cell.sides = DOOROPEN_TEX; initMap();
 		}
 		private function getCell(x:int, y:int):Cell {return cells[(y+SIZE)*(SIZE*2+1)+x+SIZE];}
 		public function draw(m:Main):void {
@@ -31,8 +32,21 @@ package  {
 				for(i=st2; i<=r-st2; i++) getCell(-i,i-r).drawCeiling(m);
 			}
 		}
+		private function canDoor(c:Cell):Boolean {
+			return ((c.x == -SIZE || getCell(c.x-1,c.y).sides == WALL1_TEX) && (c.x == SIZE || getCell(c.x+1,c.y).sides == WALL1_TEX)
+			&& (c.y == -SIZE || getCell(c.x,c.y-1).sides == -1) && (c.y == SIZE || getCell(c.x,c.y+1).sides == -1))
+			|| ((c.y == -SIZE || getCell(c.x,c.y-1).sides == WALL1_TEX) && (c.y == SIZE || getCell(c.x,c.y+1).sides == WALL1_TEX)
+			&& (c.x == -SIZE || getCell(c.x-1,c.y).sides == -1) && (c.x == SIZE || getCell(c.x+1,c.y).sides == -1));
+		}
+		private function checkDoor(c:Cell):void {
+			var dx:int, dy:int; if(c.x == -SIZE){dx=1; dy=0;} else if(c.x == SIZE){dx = -1; dy = 0;}
+			else if(c.y == -SIZE){dx = 0; dy = 1;} else if(c.y == SIZE){dx = 0; dy = -1;} else return;
+			var c2:Cell = getCell(c.x+dx,c.y+dy); if(c2.sides >= WALL2_TEX && c2.sides <= DOOROPEN_TEX){
+				if(getCell(c.x+dx*2,c.y+dy*2).sides == -1) c.type = Cell.FLOOR; else{c.type = Cell.WALL; c.sides = WALL1_TEX;}
+			}
+		}
 		private function updateMap(openList:Vector.<Cell>):void {
-			var i:int, c:Cell; for(i=0; i<cells.length; i++) cells[i].visited = false;
+			var i:int, c:Cell; for(i=0; i<cells.length; i++) cells[i].visited = false; for(i=0; i<openList.length; i++) checkDoor(openList[i]);
 			var paths:Vector.<Vector.<Cell> > = new Vector.<Vector.<Cell> >(); var st:Vector.<Cell> = new Vector.<Cell>();
 			st.push(getCell(0,0)); paths.push(st); while(paths.length > 0){
 				var idx:int = Math.random()*paths.length; var tmp:Vector.<Cell> = paths[idx]; paths[idx] = paths[paths.length-1];
@@ -50,9 +64,21 @@ package  {
 			}
 			for(i=0; i<openList.length; i++){
 				c = openList[i]; if(c.type == Cell.FLOOR){c.floor = FLOOR_TEX; c.ceiling = CEILING_TEX;}
-				else{
-					if(Math.random() < 0.3){c.floor = FLOOR2_TEX; c.ceiling = CEILING_TEX; c.type = Cell.PIT;}
-					else{c.floor = FLOOR_TEX; c.ceiling = CEILING_TEX; c.sides = WALL2_TEX;}
+				else if(c.sides == -1){
+					if(Math.random() < 0.2){c.floor = (Math.random()>0.3)?PIT1_TEX:PIT2_TEX; c.ceiling = CEILING_TEX; c.type = Cell.PIT;}
+					else c.sides = WALL1_TEX;
+				}
+			}
+			for(i=0; i<openList.length; i++){
+				c = openList[i]; if(c.type == Cell.FLOOR && canDoor(c)){
+					c.type = Cell.DOOR; c.sides = (Math.random()>0.3)?DOOR1_TEX:DOOR2_TEX; c.unlock = open_door_cell;
+				}
+			}
+			for(i=0; i<openList.length; i++){
+				c = openList[i]; if(c.type == Cell.WALL && canDoor(c)){
+					c.floor = FLOOR_TEX; c.ceiling = CEILING_TEX;
+					var r:Number = Math.random(); c.sides = (r>0.4)?WALL2_TEX:((r > 0.08)?DOOR1_TEX:DOOR2_TEX);
+					if(c.sides != WALL2_TEX && Math.random() < 0.2) c.type = Cell.TRAP_DOOR;
 				}
 			}
 		}

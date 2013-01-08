@@ -91,18 +91,24 @@ package {
         private var fragmentAssembly:AGALMiniAssembler = new AGALMiniAssembler();
         private var programPair:Program3D;
 		
-		[Embed(source = '../lib/wall_001.png')]
-		private var WallTexture:Class;
-		[Embed(source = '../lib/wall_002.png')]
-		private var Wall2Texture:Class;
-		[Embed(source = '../lib/floor_001.png')]
-		private var FloorTexture:Class;
-		[Embed(source = '../lib/floor_hole_001.png')]
-		private var Floor2Texture:Class;
-		[Embed(source = '../lib/ceiling_001.png')]
-		private var CeilingTexture:Class;
-		[Embed(source = '../lib/ceiling_002.png')]
-		private var ObjectTexture:Class;
+		[Embed(source = '../lib/A1_wall.png')]
+		private var L1Wall1:Class;
+		[Embed(source = '../lib/A1_windowwall.png')]
+		private var L1Wall2:Class;
+		[Embed(source = '../lib/A1_lockeddoor.png')]
+		private var L1Door1:Class;
+		[Embed(source = '../lib/A1_hiddendoor.png')]
+		private var L1Door2:Class;
+		[Embed(source = '../lib/A1_opendoor.png')]
+		private var L1DoorOpen:Class;
+		[Embed(source = '../lib/A1_floor.png')]
+		private var L1Floor:Class;
+		[Embed(source = '../lib/A1_ceiling.png')]
+		private var L1Ceiling:Class;
+		[Embed(source = '../lib/A1_openpit.png')]
+		private var L1Pit1:Class;
+		[Embed(source = '../lib/A1_hiddenpit.png')]
+		private var L1Pit2:Class;
 		
 		[Embed(source='../lib/I Can\'t Escape_track 3.mp3')] 
 		private var bgm:Class;
@@ -267,7 +273,7 @@ package {
 					case 1: view.appendRotation(facing*90, up_dir, zero); view.appendTranslation(0,Math.sin(-move_ct*Math.PI*4/move_speed)*0.02,-(d-dir*move_ct)*2.0/move_speed); break;
 					case 2: view.appendRotation(facing*90+90*move_ct/max_move, up_dir, zero); break;
 					case 3: view.appendRotation(facing*90-90*move_ct/max_move, up_dir, zero); break;
-					case 4: if(move_ct-2 == (max_move-2)/2){world.regenerate(); setLevel(level+1); if(level == 8){mainMenu(); return;}}
+					case 4: if(move_ct-2 == (max_move-2)/2){world.regenerate(); setLevel(level+1); if(level == 6){mainMenu(); return;}}
 					if(move_ct-2 <= (max_move-2)/2) view.appendTranslation(0,-2.4*Math.abs((move_ct-2)/(max_move-2))+0.4,0);
 					else view.appendTranslation(0,2.4-2.4*(move_ct-2)/(max_move-2),0); view.appendRotation(facing*90, up_dir, zero); break;
 				} 
@@ -299,19 +305,28 @@ package {
 			else if(e.stageX > viewWidth*0.8) mright = true;
 			else mup = true;
 		}
+		private function getBitmap(s:String):BitmapData {var c:Class = this[s] as Class; return new c().bitmapData;}
 		private function createTextures():void {
-			textures = new Vector.<Texture>(); var b:BitmapData = new WallTexture().bitmapData; var t:int = World.WALL_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
-			b = new Wall2Texture().bitmapData; t = World.WALL2_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
-			b = new FloorTexture().bitmapData; t = World.FLOOR_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,false);
-			b = new Floor2Texture().bitmapData; t = World.FLOOR2_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,false);
-			b = new CeilingTexture().bitmapData; t = World.CEILING_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
-			b = new ObjectTexture().bitmapData; t = World.OBJECT_TEX;
-			textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+			textures = new Vector.<Texture>(); for(var i:int=1; i<2; i++){
+				var j:int = World.N_TEX*(i-1); var b:BitmapData = getBitmap("L"+i+"Wall1"); var t:int = j+World.WALL1_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Wall2"); t = j+World.WALL2_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Door1"); t = j+World.DOOR1_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Door2"); t = j+World.DOOR2_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"DoorOpen"); t = j+World.DOOROPEN_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Floor"); t = j+World.FLOOR_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Ceiling"); t = j+World.CEILING_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Pit1"); t = j+World.PIT1_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Pit2"); t = j+World.PIT2_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+			}
 		}
 		public static function uploadTexture(tex:Texture, orig:BitmapData, flip:Boolean):void {
 			var w:int = orig.width; var h:int = orig.height; var l:int = 0; var r:Rectangle=new Rectangle(0,0,w,h);
