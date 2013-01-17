@@ -44,6 +44,7 @@ package {
 	 */
 	public class Main extends Sprite {
 		/** TODO:
+		 * Randomly open/close doors near player. Sometimes close and lock doors so that player cannot return the way they came.
 		 * Integrate art and assets, and we're done WOHOO!
 		 */
 		public static const DEBUG:Boolean = true;
@@ -109,9 +110,38 @@ package {
 		private var L1Pit1:Class;
 		[Embed(source = '../lib/A1_hiddenpit.png')]
 		private var L1Pit2:Class;
+		[Embed(source = '../lib/A1_ladder_tmp.png')]
+		private var L1Ladder:Class;
 		
+		[Embed(source='../lib/I Can\'t Escape_track 2.mp3')] 
+		private var bgm1:Class;
 		[Embed(source='../lib/I Can\'t Escape_track 3.mp3')] 
-		private var bgm:Class;
+		private var bgm2:Class;
+		[Embed(source='../lib/I Can\'t Escape_track 6.mp3')] 
+		private var bgm3:Class;
+		[Embed(source='../lib/I Can\'t Escape_track 4.mp3')] 
+		private var bgm4:Class;
+		[Embed(source='../lib/I Can\'t Escape_track 5_loop.mp3')] 
+		private var bgm5:Class;
+		[Embed(source='../lib/I Can\'t Escape_track 7.mp3')] 
+		private var bgm6:Class;
+		
+		[Embed(source='../lib/footsteps1.mp3')] 
+		private var footsteps1:Class;
+		[Embed(source='../lib/footsteps2.mp3')] 
+		private var footsteps2:Class;
+		[Embed(source='../lib/footsteps3.mp3')] 
+		private var footsteps3:Class;
+		[Embed(source = '../lib/Thud_3.mp3')]
+		private var thud:Class;
+		[Embed(source = '../lib/Gate Pass 3.mp3')]
+		private var door1_sfx:Class;
+		[Embed(source = '../lib/Trap Wall Pass_2.mp3')]
+		private var door2_sfx:Class;
+		[Embed(source='../lib/Shadow_steps.mp3')] 
+		private var shadow_steps:Class;
+		[Embed(source='../lib/Pit Fall Crumble_2.mp3')] 
+		private var fall_pit:Class;
 		
 		[Embed(source = "../lib/GypsyCurse.ttf",fontName = "Gypsy Curse",mimeType = "application/x-font",
 		fontWeight="normal",fontStyle="normal", unicodeRange="U+0027,U+0041-U+005a",advancedAntiAliasing="true",embedAsCFF="false")] 
@@ -133,7 +163,7 @@ package {
 			stage.displayState=StageDisplayState.NORMAL;
 			if(context != null){context.dispose(); context = null;}
 			if(menu != null){menu.parent.removeChild(menu); menu = null;}
-			if(current_channel != null){current_channel.stop(); current_channel = null;} stage.removeEventListener(Event.ENTER_FRAME, render);
+			playBGM(0); stage.removeEventListener(Event.ENTER_FRAME, render);
 			stage.removeEventListener(KeyboardEvent.KEY_DOWN, key_down); stage.removeEventListener(KeyboardEvent.KEY_UP, key_up);
 			stage.removeEventListener(MouseEvent.MOUSE_DOWN, mouse_check); stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouse_check);
 			stage.removeEventListener(MouseEvent.MOUSE_UP, mouse_check);
@@ -152,7 +182,7 @@ package {
 			stage.displayState=StageDisplayState.FULL_SCREEN; stage.focus = stage;
 			if(menu != null){menu.parent.removeChild(menu); menu = null;}
 			new_game = true; var s:* = stage; if(s.hasOwnProperty("nativeWindow")) s.nativeWindow.activate();
-			move_ct = 0; kup = mup = kdown = mdown = kleft = mleft = kright = mright = false; stage3D = stage.stage3Ds[0];
+			move_ct = 0; fade_ct = 0; kup = mup = kdown = mdown = kleft = mleft = kright = mright = false; stage3D = stage.stage3Ds[0];
 			stage3D.addEventListener(Event.CONTEXT3D_CREATE, contextCreated);
 			stage3D.requestContext3D();
 			vertexAssembly.assemble(Context3DProgramType.VERTEX, VERTEX_SHADER, false);
@@ -161,12 +191,12 @@ package {
 		private function contextCreated(event:Event):void {
 			context = Stage3D(event.target).context3D; if(DEBUG) context.enableErrorChecking = true; initContext();
 			if(new_game){
-				setLevel(0); world = new World(); current_channel = (new bgm() as Sound).play(0, int.MAX_VALUE);
+				setLevel(0); world = new World();
 				stage.addEventListener(Event.ENTER_FRAME, render);
 				stage.addEventListener(KeyboardEvent.KEY_DOWN, key_down); stage.addEventListener(KeyboardEvent.KEY_UP, key_up);
 				stage.addEventListener(MouseEvent.MOUSE_DOWN, mouse_check); stage.addEventListener(MouseEvent.MOUSE_MOVE, mouse_check);
 				stage.addEventListener(MouseEvent.MOUSE_UP, mouse_check); new_game = false;
-			} else setLevel(level);
+			} else setDarkness(_darkness);
 		}
 		private function initContext():void {
 			viewWidth = stage.stageWidth; viewHeight = stage.stageHeight;
@@ -242,29 +272,52 @@ package {
 			context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 1, trans, true);
 			if(tex != cur_tex){context.setTextureAt(0, textures[tex]); cur_tex = tex;} context.drawTriangles(indicesWall, 0, 2);
 		}
-		private var move_ct:int = 0, move_dir:int, max_move:int, blocked:Boolean=false, facing:int=0, move_speed:int, rot_speed:int,
+		private var ss_moved:Boolean = false, move_ct:int = 0, move_dir:int, max_move:int, blocked:Boolean=false, facing:int=0, move_speed:int, rot_speed:int,
 			fall_ct:int=12, halt:Boolean = false, kup:Boolean = false, kdown:Boolean = false, kleft:Boolean = false, kright:Boolean = false,
-			mup:Boolean = false, mdown:Boolean = false, mleft:Boolean = false, mright:Boolean = false, level:int = 0;
-		private function setLevel(l:int):void {level = l; setDarkness(-0.5-0.1*l); l >>= 1; move_speed = 27-3*l; rot_speed = 15-3*l;}
-		private function setDarkness(f:Number):void {
-			var vc:Vector.<Number> = Vector.<Number>([f,f,f,f]); context.setProgramConstantsFromVector(Context3DProgramType.VERTEX,0,vc);
+			mup:Boolean = false, mdown:Boolean = false, mleft:Boolean = false, mright:Boolean = false, level:int = 0, cur_bgm:int=-1;
+		private function playBGM(i:int):void {
+			if(cur_bgm == i) return; cur_bgm = i; if(current_channel != null) current_channel.stop(); if(i == -1){current_channel = null; return;}
+			var c:Class = this["bgm"+(i+1)] as Class; current_channel = (new c() as Sound).play(0, int.MAX_VALUE);
 		}
-		public function fall():void {move_dir = 4; max_move = move_ct = fall_ct;}
+		private function setLevel(l:int):void {
+			playBGM(Math.min(l>>1, 5)); level = l; setDarkness(-0.5-0.05*l); l >>= 2; l = Math.min(2,l); move_speed = 27-3*l; rot_speed = 15-3*l;
+		}
+		private function setDarkness(f:Number):void {
+			_darkness = f; var vc:Vector.<Number> = Vector.<Number>([f,f,f,f]); context.setProgramConstantsFromVector(Context3DProgramType.VERTEX,0,vc);
+		}
+		public function fall():void {move_dir = 4; max_move = move_ct = fall_ct; (new fall_pit() as Sound).play();}
 		private function getDx(f:int):int {return (f&1)*((f>=2)?-1:1);}
 		private function getDy(f:int):int {return ((f+1)&1)*((f>=2)?1:-1);}
+		private var _darkness:Number, fade_ct:int=0;
+		private function footsteps():void {
+			if(level >= 8) (new footsteps3() as Sound).play();
+			else if(level >= 4) (new footsteps2() as Sound).play();
+			else (new footsteps1() as Sound).play();
+			ss_moved = true;
+		}
+		public function unlockSfx(type:int):void {
+			switch(type){
+				case World.DOOR1_TEX: (new door1_sfx() as Sound).play();
+				case World.DOOR2_TEX: (new door2_sfx() as Sound).play();
+			}
+		}
 		private function render(event:Event):void {
+			if(level == 12){if(fade_ct >= 200) setDarkness(_darkness-0.006); else fade_ct++; if(_darkness <= -5){mainMenu(); return;}}
 			view.identity(); if(move_ct == 0){
 				var t:int; if(kup || mup){
-					t = world.moveTo(getDx(facing), getDy(facing)); if(t >= 0){
-						move_dir = 0; max_move = move_speed; blocked = t == 0; if(blocked) max_move/=3; move_ct = max_move;
+					t = world.moveTo(this,getDx(facing), getDy(facing)); if(t >= 0){
+						move_dir = 0; max_move = move_speed; blocked = t == 0; if(blocked){max_move/=3; (new thud() as Sound).play();}
+						else footsteps(); move_ct = max_move;
 					} else if(t == -2) fall(); else {if(kup) halt = true; kup = mup = kdown = mdown = kleft = mleft = kright = mright = false;}
 				} else if(kdown || mdown){
-					t = world.moveTo(-getDx(facing), -getDy(facing)); if(t >= 0){
-						move_dir = 1; max_move = move_speed; blocked = t == 0; if(blocked) max_move/=3; move_ct = max_move;
+					t = world.moveTo(this,-getDx(facing), -getDy(facing)); if(t >= 0){
+						move_dir = 1; max_move = move_speed; blocked = t == 0; if(blocked){max_move/=3; (new thud() as Sound).play();}
+						else footsteps(); move_ct = max_move;
 					} else if(t == -2) fall(); else {if(kdown) halt = true; kup = mup = kdown = mdown = kleft = mleft = kright = mright = false;}
 				} else if(kleft || mleft){move_dir = 2; facing--; if(facing < 0) facing = 3; max_move = move_ct = rot_speed;}
 				else if(kright || mright){move_dir = 3; facing++; if(facing > 3) facing = 0; max_move = move_ct = rot_speed;}
-			} if(move_ct == 1){
+			}  if((move_ct == 0 || move_dir >= 2 || blocked) && ss_moved && Math.random() < 0.02){(new shadow_steps() as Sound).play(); ss_moved = false;}
+			if(move_ct == 1){
 				move_ct--; view.appendRotation(facing*90, up_dir, zero); if(move_dir < 2 && !blocked) if(!world.shift((facing+((move_dir==1)?2:0))%4)) fall();
 			} else if(move_ct > 1){
 				move_ct--; var d:int=max_move,dir:int=1; if(blocked && move_ct <= max_move/2){d = 0; dir = -1;}
@@ -273,7 +326,7 @@ package {
 					case 1: view.appendRotation(facing*90, up_dir, zero); view.appendTranslation(0,Math.sin(-move_ct*Math.PI*4/move_speed)*0.02,-(d-dir*move_ct)*2.0/move_speed); break;
 					case 2: view.appendRotation(facing*90+90*move_ct/max_move, up_dir, zero); break;
 					case 3: view.appendRotation(facing*90-90*move_ct/max_move, up_dir, zero); break;
-					case 4: if(move_ct-2 == (max_move-2)/2){world.regenerate(); setLevel(level+1); if(level == 6){mainMenu(); return;}}
+					case 4: if(move_ct-2 == (max_move-2)/2){if(level == 11) world.loadEnd(); else world.regenerate(); setLevel(level+1);}
 					if(move_ct-2 <= (max_move-2)/2) view.appendTranslation(0,-2.4*Math.abs((move_ct-2)/(max_move-2))+0.4,0);
 					else view.appendTranslation(0,2.4-2.4*(move_ct-2)/(max_move-2),0); view.appendRotation(facing*90, up_dir, zero); break;
 				} 
@@ -325,6 +378,8 @@ package {
 				b = getBitmap("L"+i+"Pit1"); t = j+World.PIT1_TEX;
 				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
 				b = getBitmap("L"+i+"Pit2"); t = j+World.PIT2_TEX;
+				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
+				b = getBitmap("L"+i+"Ladder"); t = j+World.LADDER_TEX;
 				textures[t] = context.createTexture(b.width, b.height, Context3DTextureFormat.BGRA, false); uploadTexture(textures[t],b,true);
 			}
 		}
