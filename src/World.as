@@ -51,7 +51,9 @@ package  {
 					monster_x = Number.POSITIVE_INFINITY;
 				}
 			} if(ghost_x != Number.POSITIVE_INFINITY){
-				m.drawSprite(GHOST_SPRITE, ghost_x, ghost_y); var len:Number = ghost_x*ghost_x+ghost_y*ghost_y; if(len > 16){
+				m.drawSprite(GHOST_SPRITE, ghost_x, ghost_y); var len:Number = ghost_x*ghost_x+ghost_y*ghost_y;
+				if(len < 0.5){if(!m.falling()){m.playPitMonster(); m.fall();} ghost_x = m.getDx(m.getFacing())*0.4; ghost_y = m.getDy(m.getFacing())*0.4;}
+				else if(len > 16 || len < 1.5){
 					len = 1.0/Math.sqrt(len); ghost_x -= ghost_x*len*0.03; ghost_y -= ghost_y*len*0.03;
 				} else {ghost_ang += Math.random()*0.2-0.09; ghost_x += Math.cos(ghost_ang)*0.03; ghost_y += Math.sin(ghost_ang)*0.03;}
 			}

@@ -407,6 +407,7 @@ package {
 			if(_darkness == f) return; _darkness = f; var vc:Vector.<Number> = Vector.<Number>([f,f,f,f]);
 			context.setProgramConstantsFromVector(Context3DProgramType.VERTEX,0,vc);
 		}
+		public function falling():Boolean {return move_ct > 0 && move_dir == 4;}
 		public function fall(trap:Boolean=false):void {move_dir = 4; max_move = move_ct = fall_ct; playSE((trap)?trap_door:fall_pit);}
 		public function climb():void {move_dir = 5; max_move = move_ct = climb_ct; playSE(ladder_climb);}
 		public function pickupKey():void {playSE(key_pickup);}
@@ -432,6 +433,7 @@ package {
 			else if(c.sides == -1) playSE(pit_monster,0.5);
 			else playSE(thud, 0.5);
 		}
+		public function playPitMonster():void {playSE(pit_monster);}
 		private var end:TextField;
 		private function render(event:Event):void {
 			if(move_dir == -1 && level == -1 && move_ct > fall_ct){
